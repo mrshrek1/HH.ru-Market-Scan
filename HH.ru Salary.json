@@ -1,0 +1,1071 @@
+{
+  "name": "HH.ru Salary Analysis with Auto-Clear",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "1731396e-a397-4a3d-abd5-a1e915ef6c55",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [
+        1648,
+        176
+      ],
+      "webhookId": "YOUR_WEBHOOK_ID",
+      "credentials": {
+        "telegramApi": {
+          "id": "dnezOekBZ8U6G08D",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "clear",
+        "documentId": {
+          "__rl": true,
+          "value": "1v7CE5YgnbX1491f9G1suvqlf0oYNzXbc_V1nr2ueaj8",
+          "mode": "list",
+          "cachedResultName": "hh",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1v7CE5YgnbX1491f9G1suvqlf0oYNzXbc_V1nr2ueaj8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "RawData",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1v7CE5YgnbX1491f9G1suvqlf0oYNzXbc_V1nr2ueaj8/edit#gid=0"
+        },
+        "keepFirstRow": true
+      },
+      "id": "7a83d50f-5fed-4ea1-b093-f8b637e5f16b",
+      "name": "Clear RawData Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1872,
+        176
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "zcesZqMFOZ0zq6xY",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.hh.ru/vacancies",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "=={{ $('Telegram Trigger').item.json.message.text }}"
+            },
+            {
+              "name": "per_page",
+              "value": "20"
+            },
+            {
+              "name": "order_by",
+              "value": "salary_desc"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9de44715-0392-4a56-9381-007046e94737",
+      "name": "HH API - Get Vacancies",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        2096,
+        176
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "items",
+        "options": {}
+      },
+      "id": "08370c11-0650-46ef-8175-7189048aa981",
+      "name": "Split Vacancies",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3,
+      "position": [
+        2320,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.hh.ru/vacancies/{{ $json.id }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "3e3bd825-41e0-42ee-ba44-41b85c5b02a5",
+      "name": "HH API - Get Details",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        2544,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "Должность",
+              "stringValue": "={{ $json.name }}"
+            },
+            {
+              "name": "ЗП_от",
+              "stringValue": "={{ $json.salary?.from || '' }}"
+            },
+            {
+              "name": "ЗП_до",
+              "stringValue": "={{ $json.salary?.to || '' }}"
+            },
+            {
+              "name": "Валюта",
+              "stringValue": "={{ $json.salary?.currency || '' }}"
+            },
+            {
+              "name": "Город",
+              "stringValue": "={{ $json.area?.name || '' }}"
+            },
+            {
+              "name": "Компания",
+              "stringValue": "={{ $json.employer?.name || '' }}"
+            },
+            {
+              "name": "Сфера_деятельности",
+              "stringValue": "={{ $json.professional_roles?.[0]?.name || '' }}"
+            },
+            {
+              "name": "Условия",
+              "stringValue": "={{ $json.employment?.name || '' }}"
+            },
+            {
+              "name": "Обязанности",
+              "stringValue": "={{ $json.description || '' }}"
+            },
+            {
+              "name": "Требования",
+              "stringValue": "={{ $json.key_skills?.map(s => s.name).join(', ') || '' }}"
+            },
+            {
+              "name": "Опыт",
+              "stringValue": "={{ $json.experience?.name || '' }}"
+            },
+            {
+              "name": "Ссылка",
+              "stringValue": "={{ $json.alternate_url }}"
+            }
+          ]
+        },
+        "include": "none",
+        "options": {}
+      },
+      "id": "5c795071-a202-4587-b10b-e568d7746aa5",
+      "name": "Format Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [
+        2768,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1v7CE5YgnbX1491f9G1suvqlf0oYNzXbc_V1nr2ueaj8",
+          "mode": "list",
+          "cachedResultName": "hh",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1v7CE5YgnbX1491f9G1suvqlf0oYNzXbc_V1nr2ueaj8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "id",
+          "cachedResultName": "RawData",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1v7CE5YgnbX1491f9G1suvqlf0oYNzXbc_V1nr2ueaj8/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "premium",
+              "displayName": "premium",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "billing_type",
+              "displayName": "billing_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "relations",
+              "displayName": "relations",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "insider_interview",
+              "displayName": "insider_interview",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "response_letter_required",
+              "displayName": "response_letter_required",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "area",
+              "displayName": "area",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "salary",
+              "displayName": "salary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "salary_range",
+              "displayName": "salary_range",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "type",
+              "displayName": "type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "address",
+              "displayName": "address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "allow_messages",
+              "displayName": "allow_messages",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "experience",
+              "displayName": "experience",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "schedule",
+              "displayName": "schedule",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "employment",
+              "displayName": "employment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "department",
+              "displayName": "department",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "show_contacts",
+              "displayName": "show_contacts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "contacts",
+              "displayName": "contacts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "branded_description",
+              "displayName": "branded_description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "vacancy_constructor_template",
+              "displayName": "vacancy_constructor_template",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "key_skills",
+              "displayName": "key_skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "auto_response",
+              "displayName": "auto_response",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "accept_handicapped",
+              "displayName": "accept_handicapped",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "accept_kids",
+              "displayName": "accept_kids",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "age_restriction",
+              "displayName": "age_restriction",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "archived",
+              "displayName": "archived",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "response_url",
+              "displayName": "response_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "specializations",
+              "displayName": "specializations",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "professional_roles",
+              "displayName": "professional_roles",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "code",
+              "displayName": "code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "hidden",
+              "displayName": "hidden",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "quick_responses_allowed",
+              "displayName": "quick_responses_allowed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "driver_license_types",
+              "displayName": "driver_license_types",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "accept_incomplete_resumes",
+              "displayName": "accept_incomplete_resumes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "employer",
+              "displayName": "employer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "published_at",
+              "displayName": "published_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "initial_created_at",
+              "displayName": "initial_created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "negotiations_url",
+              "displayName": "negotiations_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "suitable_resumes_url",
+              "displayName": "suitable_resumes_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "apply_alternate_url",
+              "displayName": "apply_alternate_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "has_test",
+              "displayName": "has_test",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "test",
+              "displayName": "test",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "alternate_url",
+              "displayName": "alternate_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "working_days",
+              "displayName": "working_days",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "working_time_intervals",
+              "displayName": "working_time_intervals",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "working_time_modes",
+              "displayName": "working_time_modes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "accept_temporary",
+              "displayName": "accept_temporary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "languages",
+              "displayName": "languages",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "approved",
+              "displayName": "approved",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "employment_form",
+              "displayName": "employment_form",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fly_in_fly_out_duration",
+              "displayName": "fly_in_fly_out_duration",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "internship",
+              "displayName": "internship",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "night_shifts",
+              "displayName": "night_shifts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "work_format",
+              "displayName": "work_format",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "work_schedule_by_days",
+              "displayName": "work_schedule_by_days",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "working_hours",
+              "displayName": "working_hours",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "show_logo_in_search",
+              "displayName": "show_logo_in_search",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "closed_for_applicants",
+              "displayName": "closed_for_applicants",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Должность",
+              "displayName": "Должность",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ЗП_от",
+              "displayName": "ЗП_от",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ЗП_до",
+              "displayName": "ЗП_до",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Валюта",
+              "displayName": "Валюта",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Город",
+              "displayName": "Город",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Компания",
+              "displayName": "Компания",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Сфера_деятельности",
+              "displayName": "Сфера_деятельности",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Условия",
+              "displayName": "Условия",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Обязанности",
+              "displayName": "Обязанности",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Требования",
+              "displayName": "Требования",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Опыт",
+              "displayName": "Опыт",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Ссылка",
+              "displayName": "Ссылка",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "64a4c8f1-bc30-4f1e-8ee3-a9e275210a77",
+      "name": "Append to RawData",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        2992,
+        176
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "zcesZqMFOZ0zq6xY",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.telegramData.message.chat.id }}",
+        "text": "=✅ Готово!\n\n🔍 Запрос: *{{ $json.telegramData.message.text }}*\n📊 Найдено вакансий: {{ $json.totalVacancies }}\n\n💰 Статистика зарплат:\n{{ $json.averageSalary.RUB ? '• Средняя (RUB): ' + $json.averageSalary.RUB + '\\n' : '' }}{{ $json.averageSalary.USD ? '• Средняя (USD): ' + $json.averageSalary.USD + '\\n' : '' }}{{ $json.averageSalary.EUR ? '• Средняя (EUR): ' + $json.averageSalary.EUR + '\\n' : '' }}\n💵 Диапазоны зарплат по валютам:\n{{ $json.minMaxSalaries.RUB ? '• RUB: ' + $json.minMaxSalaries.RUB.min + ' — ' + $json.minMaxSalaries.RUB.max + '\\n' : '' }}{{ $json.minMaxSalaries.USD ? '• USD: ' + $json.minMaxSalaries.USD.min + ' — ' + $json.minMaxSalaries.USD.max + '\\n' : '' }}{{ $json.minMaxSalaries.EUR ? '• EUR: ' + $json.minMaxSalaries.EUR.min + ' — ' + $json.minMaxSalaries.EUR.max + '\\n' : '' }}\n• Максимальная: {{ $json.maxSalary }}\n• Минимальная: {{ $json.minSalary }}\n\n🔧 Топ-3 требуемых навыка:\n• {{ $json.topSkills[0].name }} ({{ $json.topSkills[0].count }})\n• {{ $json.topSkills[1].name }} ({{ $json.topSkills[1].count }})\n• {{ $json.topSkills[2].name }} ({{ $json.topSkills[2].count }})\n\n🏙️ Топ-3 города:\n• {{ $json.topCities[0].name }} ({{ $json.topCities[0].count }})\n• {{ $json.topCities[1].name }} ({{ $json.topCities[1].count }})\n• {{ $json.topCities[2].name }} ({{ $json.topCities[2].count }})\n\n👔 Наиболее частое требование по опыту:\n{{ $json.mostCommonExperience }}\n\nДанные выгружены в Google Таблицу:\n• Лист *RawData* — все вакансии\n• Лист *Analysis* — анализ зарплат\n\n🔗 [Открыть таблицу](https://docs.google.com/spreadsheets/d/1v7CE5YgnbX1491f9G1suvqlf0oYNzXbc_V1nr2ueaj8/edit)",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "f4ed26a6-43c4-441d-afb5-65f569f8d69a",
+      "name": "Telegram Reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        3664,
+        176
+      ],
+      "webhookId": "69f8368e-567b-41b4-ab1a-44a264602878",
+      "credentials": {
+        "telegramApi": {
+          "id": "dnezOekBZ8U6G08D",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "id": "de66ca85-8488-42b4-8eb4-be34c6ae66ca",
+      "name": "Aggregate All Vacancies",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        3216,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all vacancy details from HH API\nconst vacancies = $('HH API - Get Details').all();\n\n// Initialize statistics objects\nconst salaries = {\n  RUB: [],\n  USD: [],\n  EUR: []\n};\nconst skills = {};\nconst cities = {};\nconst experiences = {};\n\n// Process each vacancy\nfor (const item of vacancies) {\n  const vacancy = item.json;\n  \n  // Collect salary data\n  if (vacancy.salary && vacancy.salary.currency) {\n    const currency = vacancy.salary.currency;\n    const normalizedCurrency = currency === \"RUR\" ? \"RUB\" : currency;\n    if (salaries[normalizedCurrency]) {\n      if (vacancy.salary.from) salaries[normalizedCurrency].push(vacancy.salary.from);\n      if (vacancy.salary.to) salaries[normalizedCurrency].push(vacancy.salary.to);\n    }\n  }\n  \n  // Collect skills\n  if (vacancy.key_skills && Array.isArray(vacancy.key_skills)) {\n    for (const skill of vacancy.key_skills) {\n      if (skill.name) {\n        skills[skill.name] = (skills[skill.name] || 0) + 1;\n      }\n    }\n  }\n  \n  // Collect cities\n  if (vacancy.area && vacancy.area.name) {\n    cities[vacancy.area.name] = (cities[vacancy.area.name] || 0) + 1;\n  }\n  \n  // Collect experience requirements\n  if (vacancy.experience && vacancy.experience.name) {\n    experiences[vacancy.experience.name] = (experiences[vacancy.experience.name] || 0) + 1;\n  }\n}\n\n// Calculate average salaries by currency\nconst avgSalaries = {};\nfor (const [currency, values] of Object.entries(salaries)) {\n  if (values.length > 0) {\n    const sum = values.reduce((a, b) => a + b, 0);\n    avgSalaries[currency] = Math.round(sum / values.length);\n  }\n}\n\n// Find min/max salaries across all currencies\nconst allSalaries = [...salaries.RUB, ...salaries.USD, ...salaries.EUR];\nconst minSalary = allSalaries.length > 0 ? Math.min(...allSalaries) : null;\nconst maxSalary = allSalaries.length > 0 ? Math.max(...allSalaries) : null;\n\n// Calculate min/max salaries per currency\nconst minMaxSalaries = {};\nfor (const [currency, values] of Object.entries(salaries)) {\n  if (values.length > 0) {\n    minMaxSalaries[currency] = {\n      min: Math.min(...values),\n      max: Math.max(...values)\n    };\n  }\n}\n\n// Get top 3 skills\nconst topSkills = Object.entries(skills)\n  .sort((a, b) => b[1] - a[1])\n  .slice(0, 3)\n  .map(([name, count]) => ({ name, count }));\n\n// Get top 3 cities\nconst topCities = Object.entries(cities)\n  .sort((a, b) => b[1] - a[1])\n  .slice(0, 3)\n  .map(([name, count]) => ({ name, count }));\n\n// Get most common experience requirement\nconst mostCommonExperience = Object.entries(experiences)\n  .sort((a, b) => b[1] - a[1])[0];\n\n// Return statistics as single item\nreturn [{\n  json: {\n    totalVacancies: vacancies.length,\n    averageSalary: avgSalaries,\n    minSalary: minSalary,\n    maxSalary: maxSalary,\n    minMaxSalaries: minMaxSalaries,\n    topSkills: topSkills,\n    topCities: topCities,\n    mostCommonExperience: mostCommonExperience ? mostCommonExperience[0] : null,\n    telegramData: $('Telegram Trigger').first().json\n  }\n}];"
+      },
+      "id": "570849f8-fa12-46bb-b694-3732d36472c2",
+      "name": "Calculate Statistics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3440,
+        176
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Clear RawData Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clear RawData Sheet": {
+      "main": [
+        [
+          {
+            "node": "HH API - Get Vacancies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HH API - Get Vacancies": {
+      "main": [
+        [
+          {
+            "node": "Split Vacancies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Vacancies": {
+      "main": [
+        [
+          {
+            "node": "HH API - Get Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HH API - Get Details": {
+      "main": [
+        [
+          {
+            "node": "Format Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Data": {
+      "main": [
+        [
+          {
+            "node": "Append to RawData",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append to RawData": {
+      "main": [
+        [
+          {
+            "node": "Aggregate All Vacancies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate All Vacancies": {
+      "main": [
+        [
+          {
+            "node": "Calculate Statistics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Statistics": {
+      "main": [
+        [
+          {
+            "node": "Telegram Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "447458e9-59d8-4541-82fc-dfffafa543bd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7521c1aeba61398ac90f6f3e8f3089525937acfba8390e24ba2ba43ba5e5fabc"
+  },
+  "id": "41oGSNO0p93Kgv9N",
+  "tags": []
+}
